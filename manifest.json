@@ -1,0 +1,16 @@
+{
+  "name": "remember last read",
+  "description": "remember last read",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_title": "Click to overview TOC and the last you read",
+    "default_popup": "popup/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*"],
+      "js": ["content_script.js"]
+    }
+  ]
+}
