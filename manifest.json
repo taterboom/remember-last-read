@@ -3,6 +3,11 @@
   "description": "remember last read",
   "version": "1.0",
   "manifest_version": 3,
+  "icons": {
+    "32": "images/32.png",
+    "64": "images/64.png",
+    "128": "images/128.png"
+  },
   "permissions": ["storage"],
   "action": {
     "default_title": "Click to overview TOC and view the last you read",
