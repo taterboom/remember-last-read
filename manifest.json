@@ -1,10 +1,11 @@
 {
-  "name": "remember last read",
+  "name": "Remember last read",
   "description": "remember last read",
   "version": "1.0",
   "manifest_version": 3,
+  "permissions": ["storage"],
   "action": {
-    "default_title": "Click to overview TOC and the last you read",
+    "default_title": "Click to overview TOC and view the last you read",
     "default_popup": "popup/index.html"
   },
   "content_scripts": [

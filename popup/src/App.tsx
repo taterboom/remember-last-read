@@ -21,14 +21,12 @@ function App() {
           type: "RLR_GET_LAST_READ_ID",
         }),
       ]).then(([outline, activeId, lastReadId]) => {
-        console.log("P ", "S", outline, activeId, lastReadId)
         setOutline(outline)
         setActiveId(activeId)
         setLastReadId(lastReadId)
       })
     })
     chrome.runtime.onMessage.addListener((message) => {
-      console.log("P ", "R", message)
       switch (message.type) {
         case "RLR_SET_OUTLINE": {
           setOutline(message.payload)

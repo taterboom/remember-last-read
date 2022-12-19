@@ -9,26 +9,22 @@ const DATASET_START_ATTR = "data-rlr-start"
 const getHeadingId = (index: number) => PREFIX_ID + index
 const getCacheId = () => location.host + location.pathname
 
-function getCache() {
-  const cacheStr = localStorage.getItem(LOCAL_KEY)
+async function getCache() {
   try {
-    let cache = cacheStr ? JSON.parse(cacheStr) : {}
-    if (typeof cache !== "object") {
-      cache = {}
-    }
-    return cache
+    const res = await chrome.storage.local.get([LOCAL_KEY])
+    return res[LOCAL_KEY] || {}
   } catch (err) {
     return {}
   }
 }
 
-function setCache(id: ReturnType<typeof getHeadingId>) {
-  const cache = getCache()
+async function setCache(id: ReturnType<typeof getHeadingId>) {
+  const cache = await getCache()
   cache[getCacheId()] = id
   try {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify(cache))
+    await chrome.storage.local.set({ [LOCAL_KEY]: cache })
   } catch (err) {
-    localStorage.removeItem(LOCAL_KEY)
+    chrome.storage.local.clear()
   }
 }
 
@@ -59,15 +55,23 @@ const _store: {
   headings: [],
 }
 
-const lastReadId = (() => {
-  const cache = getCache()
-  return cache[getCacheId()]
-})()
+let lastReadId: string
 
-chrome.runtime.sendMessage({
-  type: "RLR_SET_LAST_READ_ID",
-  payload: lastReadId,
-})
+async function initLastRead() {
+  const cache = await getCache()
+  lastReadId = cache[getCacheId()]
+
+  chrome.runtime
+    .sendMessage({
+      type: "RLR_SET_LAST_READ_ID",
+      payload: lastReadId,
+    })
+    .catch((err) => {
+      //
+    })
+}
+
+initLastRead()
 
 function getActiveId(intersections: Intersections) {
   // ✨
@@ -79,6 +83,8 @@ function getActiveId(intersections: Intersections) {
   return ""
 }
 
+let prevActiveId: string
+
 const store = new Proxy(_store, {
   get(target, prop) {
     if (prop === "activeId") {
@@ -89,12 +95,17 @@ const store = new Proxy(_store, {
   set(target, prop, value) {
     if (prop === "intersections") {
       const activeId = getActiveId(value)
-      if (activeId) {
+      if (activeId && activeId !== prevActiveId) {
+        prevActiveId = activeId
         setCache(activeId)
-        chrome.runtime.sendMessage({
-          type: "RLR_SET_ACTIVE_ID",
-          payload: activeId,
-        })
+        chrome.runtime
+          .sendMessage({
+            type: "RLR_SET_ACTIVE_ID",
+            payload: activeId,
+          })
+          .catch((err) => {
+            //
+          })
       }
     }
     Reflect.set(target, prop, value)
@@ -183,24 +194,32 @@ function init() {
 
   store.headings = headings
   store.outline = plainOutline
-  console.log(store)
-  chrome.runtime.sendMessage({
-    type: "RLR_SET_OUTLINE",
-    payload: plainOutline,
-  })
+
+  chrome.runtime
+    .sendMessage({
+      type: "RLR_SET_OUTLINE",
+      payload: plainOutline,
+    })
+    .catch((err) => {
+      //
+    })
 
   for (let i = 0; i < headings.length; i++) {
-    const currentHeading = headings[i]
-    const id = currentHeading.id
-    currentHeading.dataset[DATASET_START] = id
-    ob.observe(currentHeading)
-    const mybeEndEl = headings[i + 1]
-    if (mybeEndEl) {
-      const endEl = getPreviousEl(mybeEndEl)
-      if (endEl) {
-        endEl.dataset[DATASET_END] = id
-        ob.observe(endEl)
+    try {
+      const currentHeading = headings[i]
+      const id = currentHeading.id
+      currentHeading.dataset[DATASET_START] = id
+      ob.observe(currentHeading)
+      const mybeEndEl = headings[i + 1]
+      if (mybeEndEl) {
+        const endEl = getPreviousEl(mybeEndEl)
+        if (endEl) {
+          endEl.dataset[DATASET_END] = id
+          ob.observe(endEl)
+        }
       }
+    } catch (err) {
+      continue
     }
   }
 }
@@ -208,8 +227,6 @@ function init() {
 init()
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // @ts-ignore
-  console.log("C ", message, store.outline, store.activeId, lastReadId)
   switch (message.type) {
     case "RLR_GET_OUTLINE": {
       sendResponse(store.outline)

@@ -1,4 +1,14 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
+
+function isInView(el: HTMLElement) {
+  const bounding = el.getBoundingClientRect()
+  return (
+    bounding.top >= 0 &&
+    bounding.left >= 0 &&
+    bounding.right <= window.innerWidth &&
+    bounding.bottom <= window.innerHeight
+  )
+}
 
 function TocSection({
   data,
@@ -9,16 +19,29 @@ function TocSection({
   activeId: string
   lastReadId: string
 }) {
+  const nodeRef = useRef<HTMLLIElement>(null)
+
   const active = useMemo(() => data.id === activeId, [data, activeId])
   const lastRead = useMemo(() => data.id === lastReadId, [data, lastReadId])
+
+  useEffect(() => {
+    if (!nodeRef.current) return
+    if (active && !isInView(nodeRef.current)) {
+      nodeRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [active])
+
   return (
-    <li>
+    <li
+      ref={nodeRef}
+      className={`${
+        active ? "text-base-content" : "text-base-content/70 marker:opacity-80 marker:text-xs"
+      }`}
+    >
       <span
-        //   href={`#${data.id}`}
-        style={{
-          color: active ? "green" : "red",
-          background: lastRead ? "rgba(0, 0, 0, 0.5)" : "transparent",
-        }}
+        className={`cursor-pointer px-1 py-0.5 rounded ${
+          active ? "text-base-content bg-base-200 font-medium" : "text-base-content/70"
+        }`}
         onClick={() => {
           // send message to jump
           chrome.tabs.query({ currentWindow: true, active: true }).then((res) => {
@@ -30,8 +53,13 @@ function TocSection({
           })
         }}
       >
-        {data.title}
+        {data.title || "Untitled"}
       </span>
+      {lastRead ? (
+        <span className="ml-2 badge badge-primary badge-xs rounded py-0.5 h-4 scale-75 origin-left">
+          Last Read
+        </span>
+      ) : null}
       {data.sections.length > 0 && (
         <ol>
           {data.sections.map((item) => (
@@ -53,7 +81,7 @@ function Toc({
   lastReadId: string
 }) {
   return (
-    <div>
+    <div className="bg-base-100 text-base-content">
       {data.sections.length > 0 && (
         <ol>
           {data.sections.map((item) => (
