@@ -7,7 +7,7 @@
     "build:popup": "cd popup && npm run build",
     "build:scripts": "esbuild content_script=./content_script.ts --bundle --outdir=dist --target=esnext",
     "build": "rm -rf dist && npm run build:scripts && npm run build:popup && npm run cp",
-    "cp": "cp -R popup/dist dist/popup && cp manifest.json dist"
+    "cp": "cp -R popup/dist dist/popup && cp manifest.json dist && cp -R images dist"
   },
   "repository": {
     "type": "git",

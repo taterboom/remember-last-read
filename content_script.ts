@@ -244,7 +244,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case "RLR_JUMP": {
       const id = document.querySelector(`[${DATASET_START_ATTR}=${message.payload}]`)?.id
       if (id) {
-        console.log("????", id)
         location.hash = id
       }
       break
