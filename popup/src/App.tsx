@@ -8,24 +8,28 @@ function App() {
   const [lastReadId, setLastReadId] = useState("")
 
   useEffect(() => {
-    chrome.tabs.query({ currentWindow: true, active: true }).then((res) => {
-      if (!res[0]?.id) return
-      Promise.all([
-        chrome.tabs.sendMessage(res[0].id, {
-          type: "RLR_GET_OUTLINE",
-        }),
-        chrome.tabs.sendMessage(res[0].id, {
-          type: "RLR_GET_ACTIVE_ID",
-        }),
-        chrome.tabs.sendMessage(res[0].id, {
-          type: "RLR_GET_LAST_READ_ID",
-        }),
-      ]).then(([outline, activeId, lastReadId]) => {
-        setOutline(outline)
-        setActiveId(activeId)
-        setLastReadId(lastReadId)
+    const query = () => {
+      chrome.tabs.query({ currentWindow: true, active: true }).then((res) => {
+        if (!res[0]?.id) return
+        Promise.all([
+          chrome.tabs.sendMessage(res[0].id, {
+            type: "RLR_GET_OUTLINE",
+          }),
+          chrome.tabs.sendMessage(res[0].id, {
+            type: "RLR_GET_ACTIVE_ID",
+          }),
+          chrome.tabs.sendMessage(res[0].id, {
+            type: "RLR_GET_LAST_READ_ID",
+          }),
+        ]).then(([outline, activeId, lastReadId]) => {
+          setOutline(outline)
+          setActiveId(activeId)
+          setLastReadId(lastReadId)
+        })
       })
-    })
+    }
+    query()
+    chrome.tabs.onActivated.addListener(query)
     chrome.runtime.onMessage.addListener((message) => {
       switch (message.type) {
         case "RLR_SET_OUTLINE": {
